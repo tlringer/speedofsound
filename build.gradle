@@ -8,13 +8,50 @@ buildscript {
 }
 apply plugin: 'com.android.application'
 
+
+// By default, don't run SPARTA. To run SPARTA, run ../gradlew compileDebugJavaWithJavac -PrunSparta=true
+def runSparta = project.properties['runSparta'] ?: false
+
 dependencies {
+    // Support both options and env vars
+    def checkerFrameworkDir = System.env.CHECKERFRAMEWORK == null ?
+            System.getProperty("CHECKERFRAMEWORK") + "/checker/dist" : "$System.env.CHECKERFRAMEWORK/checker/dist"
+
+    def spartaDir = System.env.SPARTA_CODE == null ?
+            System.getProperty("SPARTA_CODE") : "$System.env.SPARTA_CODE"
+
+    if (runSparta) {
+        // checkerframework
+        compile fileTree(dir: checkerFrameworkDir, include: ['*.jar'])
+        compile fileTree(dir: spartaDir, include: ['*.jar']) // move if you need annotations
+    }
+
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile group: 'com.google.guava', name: 'guava', version: '18.0'
+    compile(name: 'ACG Library-release', ext:'aar')
 	compile 'com.android.support:support-v4:23.2.0'
 	compile 'com.android.support:appcompat-v7:23.2.0'
 	compile 'com.google.android.gms:play-services-maps:8.4.0'
 }
 
-
+if (runSparta) {
+    allprojects {
+        // SPARTA integration
+        gradle.projectsEvaluated {
+            tasks.withType(JavaCompile).all {
+                options.debug = true
+                options.compilerArgs = [
+                        '-processor', 'sparta.checkers.FlowChecker',
+                        '-AflowPolicy=flow/flow-policy',
+                        '-AprintErrorStack'
+                ]
+                options.bootClasspath = System.getProperty("sun.boot.class.path") + ":" + options.bootClasspath
+                options.fork = true
+                options.forkOptions.executable = "$System.env.CHECKERFRAMEWORK/checker/bin/javac"
+            }
+        }
+    }
+}
 
 android {
 	compileSdkVersion 23
@@ -45,10 +82,18 @@ android {
 	buildTypes {
 		release {
 			signingConfig signingConfigs.release
-			minifyEnabled true
+			minifyEnabled false
 			shrinkResources true
 			proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.txt'
 		}
+	}
+}
+
+repositories {
+    jcenter()
+
+	flatDir {
+		dirs 'libs'
 	}
 }
 

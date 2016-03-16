@@ -1,0 +1,22 @@
+# !/bin/bash
+# Temporary aggragate build script for SPARTA, static analysis, and normal Gradle build
+# TODO make portable, move event validator
+
+javac -cp soot-trunk.jar:android.jar ./StaticEventValidator.java
+
+cd ..
+./gradlew build
+
+cd ./validation
+
+# Don't fail on error:
+java -ea -cp ../src:soot-trunk.jar:android.jar:./ StaticEventValidator -process-dir ../build/outputs/apk/speedofsound-debug.apk -p jtp.event-validation on -p cg.cha off -allow-phantom-refs -android-jars ~/android/platforms/ -x 'com.acg.*' -x 'com.google.*' -x 'com.android.*' -x 'android.support.*' -x 'sparta.*'  -f n
+
+# TODO need a better way to ignore libraries
+# add failOnError after StaticEventValidator to fail on error
+
+cd ../
+./gradlew compileDebugJavaWithJavac -PrunSparta=true
+./gradlew clean
+./gradlew build
+
