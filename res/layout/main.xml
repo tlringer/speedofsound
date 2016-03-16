@@ -17,6 +17,10 @@
 			android:layout_marginBottom="20dp"
 			android:layout_marginTop="10dp" />
 
+	<FrameLayout android:id="@id/update_location_acg_fragment_id"
+			  android:layout_width="wrap_content"
+			  android:layout_height="wrap_content"/>	
+
 	<LinearLayout
 			android:id="@+id/tracking_details"
 			android:layout_width="wrap_content"

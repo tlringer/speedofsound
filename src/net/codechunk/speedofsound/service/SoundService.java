@@ -1,28 +1,22 @@
 package net.codechunk.speedofsound.service;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
-
+import com.acg.lib.ACGResourceAccessException;
+import com.acg.lib.impl.UpdateLocationACG;
+import com.acg.lib.listeners.ResourceAvailabilityListener;
+import com.acg.lib.model.Location;
 import net.codechunk.speedofsound.R;
 import net.codechunk.speedofsound.SongTracker;
 import net.codechunk.speedofsound.SpeedActivity;
@@ -34,7 +28,7 @@ import net.codechunk.speedofsound.util.AppPreferences;
  * Responsible for adjusting the volume based on the current speed. Can be
  * started and stopped externally, but is largely independent.
  */
-public class SoundService extends Service {
+public class SoundService extends Service implements ResourceAvailabilityListener {
 	private static final String TAG = "SoundService";
 
 	/**
@@ -62,10 +56,12 @@ public class SoundService extends Service {
 
 	private SharedPreferences settings;
 	private VolumeThread volumeThread = null;
-	private LocationManager locationManager;
 	private LocalBinder binder = new LocalBinder();
 	private VolumeConversion volumeConversion;
 	private SongTracker songTracker;
+	public UpdateLocationACG locationACG; //TODO public for now
+
+	private Location previousLocation;
 
 	/**
 	 * Start up the service and initialize some values. Does not start tracking.
@@ -82,7 +78,6 @@ public class SoundService extends Service {
 
 		// register handlers & audio
 		this.localBroadcastManager = LocalBroadcastManager.getInstance(this);
-		this.locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 		this.volumeConversion = new VolumeConversion();
 		this.volumeConversion.onSharedPreferenceChanged(this.settings, null); // set initial
 		this.songTracker = SongTracker.getInstance(this);
@@ -144,23 +139,8 @@ public class SoundService extends Service {
 			return;
 		}
 
-		// check runtime permission
-		int hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-		if (hasPermission != PackageManager.PERMISSION_GRANTED) {
-			SoundService.showNeedLocationToast(this);
-			return;
-		}
-
-		// request updates
-		Criteria criteria = new Criteria();
-		criteria.setAccuracy(Criteria.ACCURACY_FINE);
-		String provider = this.locationManager.getBestProvider(criteria, true);
-		if (provider != null) {
-			this.locationManager.requestLocationUpdates(provider, 0, 0, this.locationUpdater);
-		} else {
-			SoundService.showNeedLocationToast(this);
-			return;
-		}
+		// configure updates
+		locationACG.setFastestInterval(0);
 
 		// start a new route
 		this.songTracker.startRoute();
@@ -180,12 +160,7 @@ public class SoundService extends Service {
 		SoundService.this.localBroadcastManager.sendBroadcast(intent);
 
 		this.tracking = true;
-		Log.d(TAG, "Tracking started with location provider " + provider);
-	}
-
-	public static void showNeedLocationToast(Context ctx) {
-		Toast toast = Toast.makeText(ctx, ctx.getString(R.string.no_location_providers), Toast.LENGTH_LONG);
-		toast.show();
+		Log.d(TAG, "Tracking started with location acg");
 	}
 
 	/**
@@ -228,13 +203,6 @@ public class SoundService extends Service {
 		// end the current route
 		this.songTracker.endRoute();
 
-		// disable location updates
-		try {
-			this.locationManager.removeUpdates(this.locationUpdater);
-		} catch (SecurityException e) {
-			Log.w(TAG, "Somehow stopTracking was called and I didn't have permission to stop. Huh?");
-		}
-
 		// remove notification and go to background
 		stopForeground(true);
 
@@ -247,67 +215,55 @@ public class SoundService extends Service {
 		Log.d(TAG, "Tracking stopped");
 	}
 
+
+	@Override
+	public void onResourceUnavailable() {
+		Log.e(TAG, "Service is unavailable");
+	}
+
+	@Override
 	/**
-	 * Custom location listener. Triggers volume changes based on the current
-	 * average speed.
+	 * Triggers volume changes based on the currentaverage speed.
 	 */
-	private LocationListener locationUpdater = new LocationListener() {
-		private Location previousLocation = null;
+	public void onResourceReady() {
+		Location location = null;
+		try {
+			location = locationACG.getResource();
+		} catch (ACGResourceAccessException e) {
+			return;
+		}
 
-		/**
-		 * Change the volume based on the current average speed. If speed is not
-		 * available from the current location provider, calculate it from the
-		 * previous location. After updating the average and updating the
-		 * volume, send out a broadcast notifying of the changes.
-		 */
-		public void onLocationChanged(Location location) {
-			// some stupid phones occasionally send a null location.
-			// who does that, seriously.
-			if (location == null)
-				return;
+		// use the GPS-provided speed if available
+		float speed = location.getSpeed();
 
-			// use the GPS-provided speed if available
-			float speed;
-			if (location.hasSpeed()) {
-				speed = location.getSpeed();
+		if (speed == 0.0) {
+			// speed fall-back (mostly for the emulator)
+			if (this.previousLocation != null) {
+				// get the distance between this and the previous update
+				float meters = previousLocation.distanceTo(location);
+				float timeDelta = location.getTime() - previousLocation.getTime();
+
+				Log.v(TAG, "Location distance: " + meters);
+
+				// convert to meters/second
+				speed = 1000 * meters / timeDelta;
 			} else {
-				// speed fall-back (mostly for the emulator)
-				if (this.previousLocation != null) {
-					// get the distance between this and the previous update
-					float meters = previousLocation.distanceTo(location);
-					float timeDelta = location.getTime() - previousLocation.getTime();
-
-					Log.v(TAG, "Location distance: " + meters);
-
-					// convert to meters/second
-					speed = 1000 * meters / timeDelta;
-				} else {
-					speed = 0;
-				}
-
-				this.previousLocation = location;
+				speed = 0;
 			}
 
-			float volume = SoundService.this.volumeConversion.speedToVolume(speed);
-			SoundService.this.volumeThread.setTargetVolume(volume);
-
-			// send out a local broadcast with the details
-			Intent intent = new Intent(SoundService.LOCATION_UPDATE_BROADCAST);
-			intent.putExtra("location", location);
-			intent.putExtra("speed", speed);
-			intent.putExtra("volumePercent", (int) (volume * 100));
-			SoundService.this.localBroadcastManager.sendBroadcast(intent);
+			this.previousLocation = location;
 		}
 
-		public void onProviderDisabled(String provider) {
-		}
+		float volume = SoundService.this.volumeConversion.speedToVolume(speed);
+		SoundService.this.volumeThread.setTargetVolume(volume);
 
-		public void onProviderEnabled(String provider) {
-		}
-
-		public void onStatusChanged(String provider, int status, Bundle extras) {
-		}
-	};
+		// send out a local broadcast with the details
+		Intent intent = new Intent(SoundService.LOCATION_UPDATE_BROADCAST);
+		intent.putExtra("location", location.getLocation());
+		intent.putExtra("speed", speed);
+		intent.putExtra("volumePercent", (int) (volume * 100));
+		SoundService.this.localBroadcastManager.sendBroadcast(intent);
+	}
 
 	/**
 	 * Service-level access for external classes and activities.
@@ -319,9 +275,16 @@ public class SoundService extends Service {
 		public SoundService getService() {
 			return SoundService.this;
 		}
-	}
 
-	/**
+        /**
+         * Set the ACG
+         */
+        public void setACG(UpdateLocationACG updateLocationACG) {
+            
+        }
+    }
+
+    /**
 	 * Return the binder associated with this service.
 	 */
 	@Override

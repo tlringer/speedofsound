@@ -1,24 +1,13 @@
 package net.codechunk.speedofsound;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.location.LocationManager;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
+import android.content.*;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
@@ -29,17 +18,22 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
-
+import com.acg.lib.impl.UpdateLocationACG;
+import com.acg.lib.listeners.ACGActivity;
+import com.acg.lib.listeners.ACGListeners;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-
 import net.codechunk.speedofsound.service.SoundService;
 import net.codechunk.speedofsound.util.SpeedConversions;
 
 /**
  * Main status activity. Displays the current speed and set volume. Does not
  * actually track the volume itself; that is handled in SoundService.
+ *
+ * TODO put fragment in view
+ * TODO stub location additions in SPARTA
+ * TODO way of getting ACG inside of the service that doesn't suck
  */
-public class SpeedActivity extends ActionBarActivity implements View.OnClickListener {
+public class SpeedActivity extends ActionBarActivity implements View.OnClickListener, ACGActivity {
 	private static final String TAG = "SpeedActivity";
 
 	private enum UIState {
@@ -52,16 +46,6 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 	 * Disclaimer dialog unique ID.
 	 */
 	private static final int DIALOG_DISCLAIMER = 1;
-
-	/**
-	 * GPS nag dialog unique ID.
-	 */
-	private static final int DIALOG_GPS = 2;
-
-	/**
-	 * Location permission identifier.
-	 */
-	private static final int LOCATION_PERMISSION_REQUEST = 3;
 
 	/**
 	 * Application's shared preferences.
@@ -83,6 +67,11 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 	 * The background service.
 	 */
 	private SoundService service;
+
+	/**
+	 * The Location ACG
+	 */
+	private UpdateLocationACG locationACG;
 
 	/**
 	 * Load the view and attach a checkbox listener.
@@ -110,10 +99,10 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 		super.onStart();
 		Log.d(TAG, "View starting");
 
-		// bind to our service after explicitly starting it
-		Intent intent = new Intent(this, SoundService.class);
-		startService(intent);
-		bindService(intent, this.serviceConnection, 0);
+        // bind to our service after explicitly starting it
+        Intent intent = new Intent(this, SoundService.class);
+        startService(intent);
+        bindService(intent, this.serviceConnection, 0);
 	}
 
 	/**
@@ -168,27 +157,14 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 				builder.setMessage(getString(R.string.launch_disclaimer))
 						.setTitle(getString(R.string.warning))
 						.setCancelable(false)
-						.setPositiveButton(getString(R.string.launch_disclaimer_accept),
-								new DialogInterface.OnClickListener() {
-									public void onClick(DialogInterface dialog, int id) {
-										SpeedActivity.this.checkGPS();
-									}
-								});
-				dialog = builder.create();
-				break;
-
-			case DIALOG_GPS:
-				builder.setMessage(getString(R.string.gps_warning))
-						.setCancelable(false)
-						.setPositiveButton(getString(R.string.location_settings),
-								new DialogInterface.OnClickListener() {
-									public void onClick(DialogInterface dialog, int which) {
-										startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-									}
-								})
-						.setNegativeButton(getString(R.string.gps_warning_dismiss), null);
-				dialog = builder.create();
-				break;
+                        .setPositiveButton(getString(R.string.launch_disclaimer_accept),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    //TODO how to do nothing?
+                                }
+                            });
+                        dialog = builder.create();
+                break;
 
 			default:
 				dialog = null;
@@ -214,20 +190,6 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 
 			// driving disclaimer (followed by GPS)
 			this.showDialog(DIALOG_DISCLAIMER);
-		} else {
-			// GPS notice
-			this.checkGPS();
-		}
-	}
-
-	/**
-	 * Check if GPS is enabled. If it isn't, bug the user to turn it on.
-	 */
-	@SuppressWarnings("deprecation")
-	private void checkGPS() {
-		LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-		if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-			this.showDialog(DIALOG_GPS);
 		}
 	}
 
@@ -239,37 +201,7 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 		boolean isChecked = ((CheckBox) view).isChecked();
 		Log.d(TAG, "Checkbox changed to " + isChecked);
 
-		// uh-oh
-		if (!this.bound) {
-			Log.e(TAG, "Service is unavailable");
-			return;
-		}
-
-		// go get 'em buddy
-		int hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-		if (isChecked && hasPermission != PackageManager.PERMISSION_GRANTED) {
-			ActivityCompat.requestPermissions(this,
-					new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-					LOCATION_PERMISSION_REQUEST);
-			return;
-		}
-
 		this.toggleTracking();
-	}
-
-	@Override
-	public void onRequestPermissionsResult(int code, String permissions[], int[] results) {
-		CheckBox enabled = (CheckBox) findViewById(R.id.checkbox_enabled);
-
-		switch (code) {
-			case LOCATION_PERMISSION_REQUEST:
-				if (results.length > 0 && results[0] != PackageManager.PERMISSION_GRANTED) {
-					SoundService.showNeedLocationToast(this);
-					enabled.setChecked(false);
-				} else {
-					this.toggleTracking();
-				}
-		}
 	}
 
 	/**
@@ -385,9 +317,20 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 			SpeedActivity.this.service = binder.getService();
 			SpeedActivity.this.bound = true;
 
+            // inflate the ACG
+            FragmentManager fragmentManager = getFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+            SpeedActivity.this.locationACG  = new UpdateLocationACG();
+            fragmentTransaction.add(R.id.update_location_acg_fragment_id, locationACG);
+            fragmentTransaction.commit();
+
 			// update the enabled check box
 			SpeedActivity.this.enabledCheckBox.setChecked(SpeedActivity.this.service.isTracking());
 			SpeedActivity.this.updateStatusState(SpeedActivity.this.service.isTracking() ? UIState.ACTIVE : UIState.INACTIVE);
+
+            // pass the location ACG
+            SpeedActivity.this.service.locationACG = SpeedActivity.this.locationACG; // TODO gross but temporary
 
 			// start tracking if preference set
 			if (SpeedActivity.this.settings.getBoolean("enable_on_launch", false)) {
@@ -442,5 +385,10 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 				break;
 		}
 		return true;
+	}
+
+	@Override
+	public ACGListeners buildACGListeners() {
+		return new ACGListeners.Builder().withResourceReadyListener(locationACG, service).build();
 	}
 }
