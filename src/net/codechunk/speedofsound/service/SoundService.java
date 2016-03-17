@@ -226,6 +226,10 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 	 * Triggers volume changes based on the currentaverage speed.
 	 */
 	public void onResourceReady() {
+        if (!tracking) {
+            return;
+        }
+
 		Location location = null;
 		try {
 			location = locationACG.getResource();
