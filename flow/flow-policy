@@ -1,5 +1,5 @@
 # Flow policy
-ACG("location") -> DISPLAY
+ACG("update_location") -> DISPLAY
 
 
 
