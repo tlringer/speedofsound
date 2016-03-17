@@ -59,7 +59,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 	private LocalBinder binder = new LocalBinder();
 	private VolumeConversion volumeConversion;
 	private SongTracker songTracker;
-	public UpdateLocationACG locationACG; //TODO public for now
+	public UpdateLocationACG locationACG; 
 
 	private Location previousLocation;
 

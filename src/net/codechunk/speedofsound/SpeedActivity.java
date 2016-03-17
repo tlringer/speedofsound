@@ -28,10 +28,6 @@ import net.codechunk.speedofsound.util.SpeedConversions;
 /**
  * Main status activity. Displays the current speed and set volume. Does not
  * actually track the volume itself; that is handled in SoundService.
- *
- * TODO put fragment in view
- * TODO stub location additions in SPARTA
- * TODO way of getting ACG inside of the service that doesn't suck
  */
 public class SpeedActivity extends ActionBarActivity implements View.OnClickListener, ACGActivity {
 	private static final String TAG = "SpeedActivity";
@@ -160,7 +156,7 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
                         .setPositiveButton(getString(R.string.launch_disclaimer_accept),
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int id) {
-                                    //TODO how to do nothing?
+                                    // do nothing
                                 }
                             });
                         dialog = builder.create();
@@ -330,7 +326,7 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 			SpeedActivity.this.updateStatusState(SpeedActivity.this.service.isTracking() ? UIState.ACTIVE : UIState.INACTIVE);
 
             // pass the location ACG
-            SpeedActivity.this.service.locationACG = SpeedActivity.this.locationACG; // TODO gross but temporary
+            SpeedActivity.this.service.locationACG = SpeedActivity.this.locationACG;
 
 			// start tracking if preference set
 			if (SpeedActivity.this.settings.getBoolean("enable_on_launch", false)) {
