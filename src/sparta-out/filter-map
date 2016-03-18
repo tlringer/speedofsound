@@ -904,12 +904,3 @@
 (android.intent.action.MAIN) -> com.android.systemui.Somnambulator
 (android.intent.action.MAIN) -> com.android.vpndialogs.ConfirmDialog
 (android.intent.action.MAIN) -> com.android.vpndialogs.ManageDialog
-(android.intent.action.MAIN) -> net.codechunk.speedofsound.SpeedActivity
-(com.twofortyfouram.locale.intent.action.EDIT_SETTING) -> net.codechunk.speedofsound.LocaleActivity
-(android.intent.action.BOOT_COMPLETED|android.intent.action.ACTION_POWER_CONNECTED|android.intent.action.ACTION_POWER_DISCONNECTED|com.twofortyfouram.locale.intent.action.FIRE_SETTING) -> net.codechunk.speedofsound.service.SoundServiceManager
-(com.android.music.metachanged|com.android.music.playbackcomplete|com.android.music.playstatechanged) -> net.codechunk.speedofsound.players.AndroidMusicPlayer
-(com.htc.music.metachanged|com.htc.music.playbackcomplete) -> net.codechunk.speedofsound.players.HTCPlayer
-(fm.last.android.metachanged|fm.last.android.playbackcomplete) -> net.codechunk.speedofsound.players.LastFmAPIPlayer
-(com.samsung.sec.android.MusicPlayer.metachanged|com.samsung.sec.android.MusicPlayer.playbackcomplete) -> net.codechunk.speedofsound.players.SamsungPlayer
-(com.adam.aslfms.notify.playstatechanged) -> net.codechunk.speedofsound.players.SLSAPIPlayer
-(com.nullsoft.winamp.metachanged|com.nullsoft.winamp.playbackcomplete) -> net.codechunk.speedofsound.players.WinampPlayer

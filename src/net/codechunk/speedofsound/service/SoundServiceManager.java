@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import net.codechunk.speedofsound.util.BluetoothDevicePreference;
-import sparta.checkers.quals.Sink;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -169,7 +168,7 @@ public class SoundServiceManager extends BroadcastReceiver {
 	 * @param context Application context.
 	 * @param state   Turn tracking on or off.
 	 */
-	private static void setTracking(Context context, @Sink({"INTENT", "WRITE_LOGS"}) boolean state) {
+	private static void setTracking(Context context, boolean state) {
 		Log.d(TAG, "Setting tracking state: " + state);
 		Intent serviceIntent = new Intent(context, SoundService.class);
 		serviceIntent.putExtra(SoundService.SET_TRACKING_STATE, state);

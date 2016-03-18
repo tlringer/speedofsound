@@ -45,7 +45,7 @@ if (runSparta) {
                 options.compilerArgs = [
                         '-processor', 'sparta.checkers.intents.IntentChecker',
                         '-AflowPolicy=flow/flow-policy',
-                        '-AcomponentMap=sparta-out/filtermap',
+                        '-AcomponentMap=sparta-out/component-map',
                         '-AprintErrorStack'
                 ]
                 options.bootClasspath = System.getProperty("sun.boot.class.path") + ":" + options.bootClasspath
@@ -90,6 +90,11 @@ android {
 			proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.txt'
 		}
 	}
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
 }
 
 repositories {

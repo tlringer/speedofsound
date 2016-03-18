@@ -15,7 +15,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import net.codechunk.speedofsound.R;
-import sparta.checkers.quals.Source;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -152,7 +151,6 @@ public class BluetoothDevicePreference extends DialogPreference {
      * Bluetooth device with a nice toString().
      */
     private class PrettyBluetoothDevice {
-        @Source("BLUETOOTH")
         private BluetoothDevice device;
 
         PrettyBluetoothDevice(BluetoothDevice device) {
@@ -164,7 +162,6 @@ public class BluetoothDevicePreference extends DialogPreference {
             return this.device.getName();
         }
 
-        @Source("BLUETOOTH")
         public String getAddress() {
             return this.device.getAddress();
         }

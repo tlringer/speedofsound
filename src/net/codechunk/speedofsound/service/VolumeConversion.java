@@ -3,19 +3,14 @@ package net.codechunk.speedofsound.service;
 import android.content.SharedPreferences;
 import android.util.Log;
 import net.codechunk.speedofsound.util.AverageSpeed;
-import sparta.checkers.quals.Sink;
 
 public class VolumeConversion implements SharedPreferences.OnSharedPreferenceChangeListener {
 	private static final String TAG = "VolumeConversion";
 
 	private final AverageSpeed averager = new AverageSpeed(6);
-	@Sink("WRITE_LOGS")
 	private float lowSpeed;
-    @Sink("WRITE_LOGS")
 	private float highSpeed;
-    @Sink("WRITE_LOGS")
 	private int lowVolume;
-    @Sink("WRITE_LOGS")
 	private int highVolume;
 
 	/**
