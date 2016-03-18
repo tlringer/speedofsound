@@ -43,8 +43,9 @@ if (runSparta) {
             tasks.withType(JavaCompile).all {
                 options.debug = true
                 options.compilerArgs = [
-                        '-processor', 'sparta.checkers.FlowChecker',
+                        '-processor', 'sparta.checkers.intents.IntentChecker',
                         '-AflowPolicy=flow/flow-policy',
+                        '-AcomponentMap=sparta-out/filtermap',
                         '-AprintErrorStack'
                 ]
                 options.bootClasspath = System.getProperty("sun.boot.class.path") + ":" + options.bootClasspath
