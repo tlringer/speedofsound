@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.preference.DialogPreference;
 import android.preference.PreferenceManager;
@@ -15,8 +14,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
 import net.codechunk.speedofsound.R;
+import sparta.checkers.quals.Source;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -153,6 +152,7 @@ public class BluetoothDevicePreference extends DialogPreference {
      * Bluetooth device with a nice toString().
      */
     private class PrettyBluetoothDevice {
+        @Source("BLUETOOTH")
         private BluetoothDevice device;
 
         PrettyBluetoothDevice(BluetoothDevice device) {
@@ -164,6 +164,7 @@ public class BluetoothDevicePreference extends DialogPreference {
             return this.device.getName();
         }
 
+        @Source("BLUETOOTH")
         public String getAddress() {
             return this.device.getAddress();
         }

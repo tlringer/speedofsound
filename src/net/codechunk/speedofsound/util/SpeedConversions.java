@@ -27,7 +27,7 @@ public class SpeedConversions {
 	 * @param nativeSpeed Speed in m/s converting from.
 	 * @return Localized speed.
 	 */
-	public static float localizedSpeed(String local_units, float nativeSpeed) {
+	public static float localizedSpeed(String local_units,float nativeSpeed) {
 		if (local_units.equals("m/s")) {
 			return nativeSpeed;
 		} else if (local_units.equals("km/h")) {

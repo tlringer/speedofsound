@@ -59,7 +59,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 	private LocalBinder binder = new LocalBinder();
 	private VolumeConversion volumeConversion;
 	private SongTracker songTracker;
-	public UpdateLocationACG locationACG; 
+	public UpdateLocationACG locationACG;
 
 	private Location previousLocation;
 
@@ -263,7 +263,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 
 		// send out a local broadcast with the details
 		Intent intent = new Intent(SoundService.LOCATION_UPDATE_BROADCAST);
-		intent.putExtra("location", location.getLocation());
+		intent.putExtra("location", location);
 		intent.putExtra("speed", speed);
 		intent.putExtra("volumePercent", (int) (volume * 100));
 		SoundService.this.localBroadcastManager.sendBroadcast(intent);
@@ -279,13 +279,6 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 		public SoundService getService() {
 			return SoundService.this;
 		}
-
-        /**
-         * Set the ACG
-         */
-        public void setACG(UpdateLocationACG updateLocationACG) {
-            
-        }
     }
 
     /**

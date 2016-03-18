@@ -1,20 +1,16 @@
 package net.codechunk.speedofsound;
 
-import android.content.BroadcastReceiver;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.location.Location;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-
+import com.acg.lib.model.Location;
 import net.codechunk.speedofsound.players.BasePlayer;
 import net.codechunk.speedofsound.service.SoundService;
 import net.codechunk.speedofsound.util.SongInfo;
+import sparta.checkers.quals.Source;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -27,6 +23,7 @@ public class SongTracker {
 	private Context context;
 
 	private SQLiteOpener sqlite;
+    @Source("DATABASE")
 	private SQLiteDatabase db;
 
 	/**
@@ -71,6 +68,7 @@ public class SongTracker {
 	 *
 	 * @return a read-only SQLite database
 	 */
+	@Source("DATABASE")
 	public SQLiteDatabase getReadableDatabase() {
 		return this.sqlite.getReadableDatabase();
 	}
@@ -154,7 +152,7 @@ public class SongTracker {
 	 * @param songId ID of the song
 	 * @return song meta
 	 */
-	public SongInfo getSongInfo(long songId) {
+	public SongInfo getSongInfo(@Source("DATABASE") long songId) {
 		Cursor cursor = this.db.query("songs",
 				new String[]{"track", "artist", "album"},
 				"id = ?", new String[]{Long.toString(songId)},
