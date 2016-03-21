@@ -3,21 +3,26 @@ package net.codechunk.speedofsound.service;
 import android.content.SharedPreferences;
 import android.util.Log;
 import net.codechunk.speedofsound.util.AverageSpeed;
+import sparta.checkers.quals.Source;
 
 public class VolumeConversion implements SharedPreferences.OnSharedPreferenceChangeListener {
 	private static final String TAG = "VolumeConversion";
 
 	private final AverageSpeed averager = new AverageSpeed(6);
+    @Source("SHARED_PREFERENCES")
 	private float lowSpeed;
+    @Source("SHARED_PREFERENCES")
 	private float highSpeed;
+    @Source("SHARED_PREFERENCES")
 	private int lowVolume;
+    @Source("SHARED_PREFERENCES")
 	private int highVolume;
 
 	/**
 	 * Convert a speed instant to a desired volume. Stateful;
 	 * based on previous speeds.
 	 */
-	public float speedToVolume(float speed) {
+	public @Source({"ACG(location)", "SHARED_PREFERENCES"}) float speedToVolume(@Source("ACG(location)") float speed) {
 		float volume;
 
 		Log.v(TAG, "Pushing speed " + speed);

@@ -21,6 +21,7 @@ import net.codechunk.speedofsound.R;
 import net.codechunk.speedofsound.SongTracker;
 import net.codechunk.speedofsound.SpeedActivity;
 import net.codechunk.speedofsound.util.AppPreferences;
+import sparta.checkers.quals.*;
 
 /**
  * The main sound control service.
@@ -61,6 +62,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 	private SongTracker songTracker;
 	public UpdateLocationACG locationACG;
 
+    @Source("ACG(location)")
 	private Location previousLocation;
 
 	/**
@@ -93,7 +95,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 	 * Return sticky mode to tell Android to keep the service active.
 	 */
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public int onStartCommand(@IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE, source={}, sink= FlowPermission.ANY)}) Intent intent, int flags, int startId) {
 		Log.d(TAG, "Start command received");
 
 		// register pref watching
@@ -155,6 +157,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 		startForeground(R.string.notification_text, getNotification());
 
 		// let everyone know
+        @IntentMap({@Extra(key="tracking")}) @Source() @Sink("ANY")
 		Intent intent = new Intent(SoundService.TRACKING_STATE_BROADCAST);
 		intent.putExtra("tracking", true);
 		SoundService.this.localBroadcastManager.sendBroadcast(intent);
@@ -207,6 +210,7 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 		stopForeground(true);
 
 		// let everyone know
+        @IntentMap({@Extra(key="tracking")}) @Source() @Sink("ANY")
 		Intent intent = new Intent(SoundService.TRACKING_STATE_BROADCAST);
 		intent.putExtra("tracking", false);
 		SoundService.this.localBroadcastManager.sendBroadcast(intent);
@@ -262,6 +266,8 @@ public class SoundService extends Service implements ResourceAvailabilityListene
 		SoundService.this.volumeThread.setTargetVolume(volume);
 
 		// send out a local broadcast with the details
+        @IntentMap({@Extra(key="location", source = FlowPermission.ACG), @Extra(key="speed", source = FlowPermission.ACG), @Extra(key="volumePercent", source = {FlowPermission.ACG, FlowPermission.SHARED_PREFERENCES})})
+        @Source() @Sink("ANY")
 		Intent intent = new Intent(SoundService.LOCATION_UPDATE_BROADCAST);
 		intent.putExtra("location", location);
 		intent.putExtra("speed", speed);

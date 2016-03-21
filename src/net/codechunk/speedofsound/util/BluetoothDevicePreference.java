@@ -15,11 +15,15 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import net.codechunk.speedofsound.R;
+import sparta.checkers.quals.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static sparta.checkers.quals.FlowPermissionString.BLUETOOTH;
+import static sparta.checkers.quals.FlowPermissionString.SHARED_PREFERENCES;
 
 /**
  * A preference dialog listing saved and paired Bluetooth devices.
@@ -29,7 +33,7 @@ public class BluetoothDevicePreference extends DialogPreference {
 
     public static final String KEY = "enable_bluetooth_devices";
 
-    protected Set<String> value;
+    @Source({SHARED_PREFERENCES, BLUETOOTH}) protected Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> value;
 
     private View view;
     private List<PrettyBluetoothDevice> adapterDevices = new ArrayList<>();
@@ -100,24 +104,24 @@ public class BluetoothDevicePreference extends DialogPreference {
         notifyChanged();
     }
 
-    private Set<String> getPersistedDevices() {
-        return PreferenceManager.getDefaultSharedPreferences(getContext())
-                .getStringSet(getKey(), new HashSet<String>());
+    private @Source({SHARED_PREFERENCES}) Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> getPersistedDevices() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+        return (Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String>) sharedPreferences.getStringSet(getKey(), new HashSet<String>());
     }
 
-    private void persistDevices(Set<String> items) {
+    private void persistDevices(@Sink(SHARED_PREFERENCES) Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> items) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putStringSet(getKey(), items);
+        editor.putStringSet(getKey(), (Set</*@Sink("SHARED_PREFERENCES")*/ String>) items);
         editor.apply();
     }
 
     /**
      * Get a set of checked devices from this dialog's ListView.
      */
-    private Set<String> getCheckedDevices() {
+    private @Source(BLUETOOTH) Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> getCheckedDevices() {
         ListView list = (ListView) this.view.findViewById(R.id.bluetooth_preference_listview);
-        Set<String> devices = new HashSet<>();
+        @Source(BLUETOOTH) Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> devices = new HashSet</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String>();
 
         SparseBooleanArray checked = list.getCheckedItemPositions();
         int size = list.getAdapter().getCount();
@@ -136,7 +140,7 @@ public class BluetoothDevicePreference extends DialogPreference {
     /**
      * Set the checked devices in the displayed ListView.
      */
-    private void setCheckedDevices(Set<String> devices) {
+    private void setCheckedDevices(@Sink("DISPLAY") Set</*@Source({"SHARED_PREFERENCES", "BLUETOOTH"})*/ String> devices) {
         ListView list = (ListView) this.view.findViewById(R.id.bluetooth_preference_listview);
 
         int size = list.getAdapter().getCount();
@@ -151,18 +155,19 @@ public class BluetoothDevicePreference extends DialogPreference {
      * Bluetooth device with a nice toString().
      */
     private class PrettyBluetoothDevice {
+        @Source(BLUETOOTH)
         private BluetoothDevice device;
 
-        PrettyBluetoothDevice(BluetoothDevice device) {
+        PrettyBluetoothDevice(@Source(BLUETOOTH) BluetoothDevice device) {
             this.device = device;
         }
 
         @Override
-        public String toString() {
+        public @Source(BLUETOOTH) String toString() {
             return this.device.getName();
         }
 
-        public String getAddress() {
+        public @Source(BLUETOOTH) String getAddress() {
             return this.device.getAddress();
         }
     }

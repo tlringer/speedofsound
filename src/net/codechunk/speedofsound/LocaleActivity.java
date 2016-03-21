@@ -5,9 +5,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.RadioButton;
-
 import net.codechunk.speedofsound.service.SoundService;
 import net.codechunk.speedofsound.service.SoundServiceManager;
+import sparta.checkers.quals.Extra;
+import sparta.checkers.quals.IntentMap;
 
 
 public class LocaleActivity extends Activity {
@@ -21,7 +22,10 @@ public class LocaleActivity extends Activity {
 		RadioButton stop_radio = (RadioButton) findViewById(R.id.tasker_radio_stop);
 
 		// load the stored action
-		Bundle bundle = getIntent().getBundleExtra(SoundServiceManager.LOCALE_BUNDLE);
+		@IntentMap({@Extra(key=SoundServiceManager.LOCALE_BUNDLE)})
+		Intent intent = (/*@IntentMap({@Extra(key=SoundServiceManager.LOCALE_BUNDLE)})*/ Intent) getIntent();
+        @IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE)})
+		Bundle bundle = (/*@IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE)})*/ Bundle) intent.getBundleExtra(SoundServiceManager.LOCALE_BUNDLE);
 		boolean startState = true;
 		if (bundle != null) {
 			startState = bundle.getBoolean(SoundService.SET_TRACKING_STATE, true);

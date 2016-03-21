@@ -24,6 +24,9 @@ import com.acg.lib.listeners.ACGListeners;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import net.codechunk.speedofsound.service.SoundService;
 import net.codechunk.speedofsound.util.SpeedConversions;
+import sparta.checkers.quals.Extra;
+import sparta.checkers.quals.IntentMap;
+import sparta.checkers.quals.Source;
 
 /**
  * Main status activity. Displays the current speed and set volume. Does not
@@ -96,10 +99,11 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 		Log.d(TAG, "View starting");
 
         // bind to our service after explicitly starting it
+        @IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE)})
         Intent intent = new Intent(this, SoundService.class);
         startService(intent);
         bindService(intent, this.serviceConnection, 0);
-	}
+	}   
 
 	/**
 	 * Stop the view and unbind from the service (but don't stop that).
@@ -252,7 +256,7 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 		 * Receive a speed/sound status update.
 		 */
 		@Override
-		public void onReceive(Context context, Intent intent) {
+		public void onReceive(Context context, @IntentMap({@Extra(key="tracking"), @Extra(key="speed"), @Extra(key="volumePercent")}) Intent intent) {
 			String action = intent.getAction();
 			Log.v(TAG, "Received broadcast " + action);
 
@@ -265,11 +269,15 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 			// new location data
 			else if (SoundService.LOCATION_UPDATE_BROADCAST.equals(action)) {
 				// unpack the speed/volume
+                @Source("ACG(location)")
 				float speed = intent.getFloatExtra("speed", -1.0f);
+                @Source("ACG(location)")
 				int volume = intent.getIntExtra("volumePercent", -1);
 
 				// convert the speed to the appropriate units
+                @Source("SHARED_PREFERENCES")
 				String units = SpeedActivity.this.settings.getString("speed_units", "");
+                @Source({"SHARED_PREFERENCES", "ACG(location)"})
 				float localizedSpeed = SpeedConversions.localizedSpeed(units, speed);
 
 				SpeedActivity.this.updateStatusState(UIState.TRACKING);
@@ -387,4 +395,5 @@ public class SpeedActivity extends ActionBarActivity implements View.OnClickList
 	public ACGListeners buildACGListeners() {
 		return new ACGListeners.Builder().withResourceReadyListener(locationACG, service).build();
 	}
+
 }

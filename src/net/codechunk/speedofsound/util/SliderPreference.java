@@ -9,8 +9,12 @@ import android.view.View;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
-
 import net.codechunk.speedofsound.R;
+import sparta.checkers.quals.Sink;
+import sparta.checkers.quals.Source;
+
+import static sparta.checkers.quals.FlowPermissionString.DISPLAY;
+import static sparta.checkers.quals.FlowPermissionString.SHARED_PREFERENCES;
 
 /**
  * A preference that is displayed as a seek bar.
@@ -24,6 +28,7 @@ public class SliderPreference extends DialogPreference implements OnSeekBarChang
 	/**
 	 * Current context.
 	 */
+    @Sink({})
 	protected Context context;
 
 	/**
@@ -44,6 +49,7 @@ public class SliderPreference extends DialogPreference implements OnSeekBarChang
 	/**
 	 * Minimum value.
 	 */
+    @Source({})
 	protected final int minValue;
 
 	/**
@@ -54,11 +60,13 @@ public class SliderPreference extends DialogPreference implements OnSeekBarChang
 	/**
 	 * Units of this preference.
 	 */
+    @Source(SHARED_PREFERENCES)
 	protected String units;
 
 	/**
 	 * Current value.
 	 */
+    @Sink({DISPLAY, SHARED_PREFERENCES})
 	protected int value;
 
 	/**
@@ -81,13 +89,13 @@ public class SliderPreference extends DialogPreference implements OnSeekBarChang
 	 * Needed to properly load the default value.
 	 */
 	@Override
-	protected void onSetInitialValue(boolean restorePersistedValue, Object defaultValue) {
+	protected void onSetInitialValue(@Sink(SHARED_PREFERENCES) boolean restorePersistedValue, @Sink({SHARED_PREFERENCES}) Object defaultValue) {
 		if (restorePersistedValue) {
 			// Restore existing state
 			this.value = this.getPersistedInt(-1);
 		} else {
 			// Set default state from the XML attribute
-			this.value = (Integer) defaultValue;
+			this.value = (/*@Sink({"SHARED_PREFERENCES", "DISPLAY"})*/ Integer) defaultValue;
 			persistInt(this.value);
 		}
 	}
@@ -154,8 +162,8 @@ public class SliderPreference extends DialogPreference implements OnSeekBarChang
 	/**
 	 * Updated the displayed value on change.
 	 */
-	public void onProgressChanged(SeekBar seekBar, int value, boolean fromTouch) {
-		this.value = value + this.minValue;
+	public void onProgressChanged(SeekBar seekBar, @Sink(DISPLAY) int value, boolean fromTouch) {
+		this.value = (/*@Sink({"SHARED_PREFERENCES", "DISPLAY"})*/ int) value + this.minValue;
 		this.updateDisplay();
 	}
 

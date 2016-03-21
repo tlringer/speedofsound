@@ -10,6 +10,10 @@ import com.acg.lib.model.Location;
 import net.codechunk.speedofsound.players.BasePlayer;
 import net.codechunk.speedofsound.service.SoundService;
 import net.codechunk.speedofsound.util.SongInfo;
+import sparta.checkers.quals.Extra;
+import sparta.checkers.quals.IntentMap;
+import sparta.checkers.quals.Sink;
+import sparta.checkers.quals.Source;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -19,9 +23,11 @@ public class SongTracker {
 	private static final String TAG = "SongTracker";
 	private static SongTracker inst = null;
 
+    @Sink()
 	private Context context;
 
 	private SQLiteOpener sqlite;
+    @Source("DATABASE")
 	private SQLiteDatabase db;
 
 	/**
@@ -34,6 +40,7 @@ public class SongTracker {
 	 */
 	private static final int MIN_DISTANCE = 10;
 
+    @Source("ACG(location)")
 	private Location previousLocation;
 	private long routeId;
 
@@ -66,6 +73,7 @@ public class SongTracker {
 	 *
 	 * @return a read-only SQLite database
 	 */
+    @Source("DATABASE")
 	public SQLiteDatabase getReadableDatabase() {
 		return this.sqlite.getReadableDatabase();
 	}
@@ -119,24 +127,13 @@ public class SongTracker {
 	}
 
 	/**
-	 * Delete a route and all of its associated data.
-	 *
-	 * @param routeId the ID of the route to delete
-	 */
-	public void deleteRoute(long routeId) {
-		String[] deleteArgs = new String[]{Long.toString(routeId)};
-		this.db.delete("points", "route_id = ?", deleteArgs);
-		this.db.delete("songs", "route_id = ?", deleteArgs);
-		this.db.delete("routes", "id = ?", deleteArgs);
-	}
-
-	/**
 	 * Return a cursor for all points associated with a route.
 	 *
 	 * @param routeId ID of the route containing points
 	 * @return a cursor to iterate
 	 */
-	public Cursor getRoutePoints(long routeId) {
+    @Source("DATABASE")
+	public Cursor getRoutePoints(@Source("DATABASE") long routeId) {
 		return this.db.query("points",
 				new String[]{"id", "song_id", "latitude", "longitude"},
 				"route_id = ?", new String[]{Long.toString(routeId)},
@@ -149,7 +146,8 @@ public class SongTracker {
 	 * @param songId ID of the song
 	 * @return song meta
 	 */
-	public SongInfo getSongInfo(long songId) {
+    @Source("DATABASE")
+	public SongInfo getSongInfo(@Source("DATABASE") long songId) {
 		Cursor cursor = this.db.query("songs",
 				new String[]{"track", "artist", "album"},
 				"id = ?", new String[]{Long.toString(songId)},
@@ -181,7 +179,7 @@ public class SongTracker {
 	 * @param album   Song album
 	 * @return the ID of the song
 	 */
-	private long findSong(long routeId, String track, String artist, String album) {
+	private long findSong(long routeId, @Source("DATABASE") String track, @Source("DATABASE") String artist, @Source("DATABASE") String album) {
 		Cursor cursor = this.db.query("songs", new String[]{"id"},
 				"track = ? AND artist = ? AND album = ?",
 				new String[]{track, artist, album},
@@ -209,11 +207,13 @@ public class SongTracker {
 	 */
 	private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
 		@Override
-		public void onReceive(Context context, Intent intent) {
+		public void onReceive(Context context, @IntentMap({@Extra(key = "location"),
+        @Extra(key="track"), @Extra(key="artist"), @Extra(key="album")})  Intent intent) {
 			String action = intent.getAction();
 
 			// new location reported
 			if (action.equals(SoundService.LOCATION_UPDATE_BROADCAST)) {
+                @Source("ACG(location)")
 				Location location = intent.getParcelableExtra("location");
 				SongTracker.this.locationUpdate(location);
 			}
@@ -246,7 +246,7 @@ public class SongTracker {
 	 *
 	 * @param location New location.
 	 */
-	private void locationUpdate(Location location) {
+	private void locationUpdate(@Source("ACG(location)") Location location) {
 		// ignore if we have no route yet
 		if (this.routeId == 0)
 			return;

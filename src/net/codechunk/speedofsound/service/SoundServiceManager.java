@@ -7,6 +7,10 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import net.codechunk.speedofsound.util.BluetoothDevicePreference;
+import sparta.checkers.quals.Extra;
+import sparta.checkers.quals.FlowPermission;
+import sparta.checkers.quals.IntentMap;
+import sparta.checkers.quals.Source;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,12 +51,15 @@ public class SoundServiceManager extends BroadcastReceiver {
 	 * Receive a broadcast and start the service or update the tracking state.
 	 */
 	@Override
-	public void onReceive(Context context, Intent intent) {
+	public void onReceive(Context context, @IntentMap({@Extra(key=BluetoothDevice.EXTRA_DEVICE, source={FlowPermission.BLUETOOTH}),
+            @Extra(key = android.bluetooth.BluetoothA2dp.EXTRA_STATE), @Extra(key = SoundServiceManager.LOCALE_BUNDLE),
+            @Extra(key = SoundService.SET_TRACKING_STATE)}) Intent intent) {
 		String action = intent.getAction();
 		Log.d(TAG, "Received intent " + action);
 
 		// start the service on boot
 		if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
+			@IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE, source={}, sink= FlowPermission.ANY)})
 			Intent startIntent = new Intent(context, SoundService.class);
 			context.startService(startIntent);
 			return;
@@ -96,7 +103,8 @@ public class SoundServiceManager extends BroadcastReceiver {
 		// locale/tasker intents
 		else {
 			if (action.equals(SoundServiceManager.LOCALE_FIRE)) {
-				Bundle bundle = intent.getBundleExtra(SoundServiceManager.LOCALE_BUNDLE);
+                @IntentMap({@Extra(key = SoundService.SET_TRACKING_STATE)})
+				Bundle bundle = (/*@IntentMap({@Extra(key=SoundService.SET_TRACKING_STATE)})*/ Bundle) intent.getBundleExtra(SoundServiceManager.LOCALE_BUNDLE);
 				if (bundle != null) {
 					boolean state = bundle.getBoolean(SoundService.SET_TRACKING_STATE, true);
 					SoundServiceManager.setTracking(context, state);
@@ -120,7 +128,8 @@ public class SoundServiceManager extends BroadcastReceiver {
 
 		// get power status
 		IntentFilter plugFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-		Intent powerStatus = context.getApplicationContext().registerReceiver(null, plugFilter);
+        @IntentMap({@Extra(key=BatteryManager.EXTRA_PLUGGED)})
+		Intent powerStatus = (/*@IntentMap({@Extra(key=BatteryManager.EXTRA_PLUGGED)})*/ Intent) context.getApplicationContext().registerReceiver(null, plugFilter);
 		boolean powerConnected = false;
 		if (powerStatus != null) {
 			int plugState = powerStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
@@ -138,7 +147,8 @@ public class SoundServiceManager extends BroadcastReceiver {
 
 		// get headphone status
 		IntentFilter headsetFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
-		Intent headphoneStatus = context.getApplicationContext().registerReceiver(null, headsetFilter);
+        @IntentMap({@Extra(key="state")})
+		Intent headphoneStatus = (/*@IntentMap({@Extra(key="state")})*/ Intent) context.getApplicationContext().registerReceiver(null, headsetFilter);
 		boolean headphoneConnected = false;
 		if (headphoneStatus != null) {
 			headphoneConnected = headphoneStatus.getIntExtra("state", 0) == 1;
@@ -168,7 +178,7 @@ public class SoundServiceManager extends BroadcastReceiver {
 	 * @param context Application context.
 	 * @param state   Turn tracking on or off.
 	 */
-	private static void setTracking(Context context, boolean state) {
+	private static void setTracking(Context context, @Source() boolean state) {
 		Log.d(TAG, "Setting tracking state: " + state);
 		Intent serviceIntent = new Intent(context, SoundService.class);
 		serviceIntent.putExtra(SoundService.SET_TRACKING_STATE, state);

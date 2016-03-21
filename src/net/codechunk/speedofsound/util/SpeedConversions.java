@@ -1,5 +1,8 @@
 package net.codechunk.speedofsound.util;
 
+import sparta.checkers.quals.PolySink;
+import sparta.checkers.quals.PolySource;
+
 public class SpeedConversions {
 	/**
 	 * Convert a speed into meters per second.
@@ -8,7 +11,7 @@ public class SpeedConversions {
 	 * @param localizedSpeed Speed to convert
 	 * @return Converted speed in m/s
 	 */
-	public static float nativeSpeed(String local_units, float localizedSpeed) {
+	public static @PolySource @PolySink float nativeSpeed(String local_units, @PolySource @PolySink float localizedSpeed) {
 		if (local_units.equals("m/s")) {
 			return localizedSpeed;
 		} else if (local_units.equals("km/h")) {
@@ -27,7 +30,7 @@ public class SpeedConversions {
 	 * @param nativeSpeed Speed in m/s converting from.
 	 * @return Localized speed.
 	 */
-	public static float localizedSpeed(String local_units,float nativeSpeed) {
+	public static @PolySource @PolySink float localizedSpeed(String local_units, @PolySource @PolySink float nativeSpeed) {
 		if (local_units.equals("m/s")) {
 			return nativeSpeed;
 		} else if (local_units.equals("km/h")) {

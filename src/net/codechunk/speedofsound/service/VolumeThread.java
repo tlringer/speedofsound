@@ -3,6 +3,7 @@ package net.codechunk.speedofsound.service;
 import android.content.Context;
 import android.media.AudioManager;
 import android.util.Log;
+import sparta.checkers.quals.Sink;
 
 /**
  * Smooth volume thread. Does its best to approach a set volume rather than
@@ -42,6 +43,7 @@ public class VolumeThread extends Thread {
 	/**
 	 * The volume we want to approach. Between 0 and 1.
 	 */
+	@Sink({"WRITE_LOGS", "SPEAKER"})
 	private float targetVolume;
 
 	/**
@@ -62,7 +64,7 @@ public class VolumeThread extends Thread {
 	 *
 	 * @param volume New target volume from 0 to 1
 	 */
-	public void setTargetVolume(float volume) {
+	public void setTargetVolume(@Sink({"WRITE_LOGS", "SPEAKER"}) float volume) {
 		// only set & wake if the target has actually changed
 		if (volume != this.targetVolume) {
 			Log.v(TAG, "Setting target volume to " + volume);

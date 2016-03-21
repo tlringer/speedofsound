@@ -2,13 +2,11 @@ package net.codechunk.speedofsound;
 
 import android.annotation.TargetApi;
 import android.app.ActionBar;
-import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Gravity;
@@ -16,15 +14,14 @@ import android.view.MenuItem;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.PolylineOptions;
-
 import net.codechunk.speedofsound.util.ColorCreator;
 import net.codechunk.speedofsound.util.SongInfo;
+import sparta.checkers.quals.Source;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +46,7 @@ public class MapperActivity extends ActionBarActivity {
 	private Map<Long, Integer> songColors = new HashMap<Long, Integer>();
 
 	private class SongSet {
+		@Source("DATABASE")
 		SongInfo song;
 		ArrayList<LatLng> points;
 	}
@@ -171,7 +169,7 @@ public class MapperActivity extends ActionBarActivity {
 	private void displayTable(ArrayList<SongSet> paths) {
 		// Disallows duplicate songs to be added to the table even if two paths
 		// have the same song and color
-		HashSet<Long> songs = new HashSet<Long>();
+		HashSet</*@Source("DATABASE")*/ Long> songs = new HashSet</*@Source("DATABASE")*/ Long>();
 
 		// for each path
 		for (SongSet loc : paths) {

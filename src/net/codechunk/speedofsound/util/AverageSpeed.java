@@ -1,7 +1,11 @@
 package net.codechunk.speedofsound.util;
 
+import sparta.checkers.quals.Sink;
+import sparta.checkers.quals.Source;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -12,12 +16,14 @@ public class AverageSpeed {
 	/**
 	 * Size limit of the averager.
 	 */
+	@Sink()
 	private int size;
 
 	/**
 	 * Cycling list of speeds to average.
 	 */
-	private List<Float> speeds = new ArrayList<Float>();
+    @Source("ACG(location)")
+    private List</*@Source("ACG(location)")*/ Float> speeds = new ArrayList</*@Source("ACG(location)")*/ Float>();
 
 	/**
 	 * Create a new averager of the set limit.
@@ -33,7 +39,7 @@ public class AverageSpeed {
 	 *
 	 * @param speed Speed to record.
 	 */
-	public void push(float speed) {
+	public void push(@Source("ACG(location)") float speed) {
 		this.speeds.add(speed);
 
 		// if the list is too large, remove the top element
@@ -48,18 +54,22 @@ public class AverageSpeed {
 	 *
 	 * @return The current average.
 	 */
-	public float getAverage() {
+	public @Source("ACG(location)") float getAverage() {
 		// Copying values instead of just using speeds. We might remove outliers
 		// from the average but we want to keep them
 		// in case they are accurate readings and we just happened to have a
 		// very large jump.
-		List<Float> speedsorted = new ArrayList<Float>();
+        List</*@Source("ACG(location)")*/ Float> speedsorted = new ArrayList</*@Source("ACG(location)")*/ Float>();
 		speedsorted.addAll(this.speeds);
 
 		// Put the values in order for calculation of inner-quartile range (iqr)
-		Collections.sort(speedsorted);
-
-		float length = speedsorted.size();
+        Collections.sort(speedsorted, new Comparator</*@Source("ACG(location)")*/ Float>() {
+            @Override
+            public int compare(Float lhs, Float rhs) {
+                return lhs.compareTo(rhs);
+            }
+        });
+        float length = speedsorted.size();
 
 		// IQR doesn't work as well when we have only a few values. Even 6 might
 		// be a little low but I'm limiting this to 4.

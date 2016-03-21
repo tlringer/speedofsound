@@ -6,6 +6,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import sparta.checkers.quals.Source;
 
 public class AppPreferences implements SharedPreferences.OnSharedPreferenceChangeListener {
 	private static final String TAG = "AppPreferences";
@@ -15,7 +16,7 @@ public class AppPreferences implements SharedPreferences.OnSharedPreferenceChang
 	/**
 	 * Convert stored preferences when the speed units change.
 	 */
-	public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+	public void onSharedPreferenceChanged(SharedPreferences prefs, @Source() String key) {
 		Log.v(TAG, "Preferences " + key);
 
 		if (key.equals("low_speed_localized") || key.equals("high_speed_localized")) {

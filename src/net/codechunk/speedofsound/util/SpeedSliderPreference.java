@@ -6,6 +6,9 @@ import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.SeekBar;
+import sparta.checkers.quals.Sink;
+
+import static sparta.checkers.quals.FlowPermissionString.DISPLAY;
 
 /**
  * A preference that is displayed as a seek bar.
@@ -51,8 +54,8 @@ public class SpeedSliderPreference extends SliderPreference {
 		return this.view;
 	}
 
-	public void onProgressChanged(SeekBar seekBar, int value, boolean fromTouch) {
-		this.value = value + this.localMin;
+	public void onProgressChanged(SeekBar seekBar, @Sink(DISPLAY) int value, boolean fromTouch) {
+		this.value = (/*@Sink({"SHARED_PREFERENCES", "DISPLAY"})*/ int) value + this.localMin;
 		this.updateDisplay();
 	}
 

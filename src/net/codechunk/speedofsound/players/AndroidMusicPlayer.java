@@ -1,8 +1,10 @@
 package net.codechunk.speedofsound.players;
 
-import net.codechunk.speedofsound.util.SongInfo;
 import android.content.Context;
 import android.content.Intent;
+import net.codechunk.speedofsound.util.SongInfo;
+import sparta.checkers.quals.Extra;
+import sparta.checkers.quals.IntentMap;
 
 public class AndroidMusicPlayer extends BasePlayer
 {
@@ -21,7 +23,7 @@ public class AndroidMusicPlayer extends BasePlayer
 	}
 
 	@Override
-	public SongInfo getSongInfo(Context context, Intent intent)
+	public SongInfo getSongInfo(Context context, @IntentMap({@Extra(key="track"), @Extra(key="artist"), @Extra(key="album")}) Intent intent)
 	{
 		SongInfo info = new SongInfo();
 		info.track = intent.getStringExtra("track");
