@@ -1,5 +1,6 @@
 import android.os.Parcelable;
 import android.view.InputEvent;
+import android.view.DragEvent;
 import android.view.View;
 import soot.*;
 import soot.jimple.DefinitionStmt;
@@ -117,7 +118,9 @@ public final class StaticEventValidator {
         return  eventIsInvalid(CLICK_METHODS, clazz, View.class, methodName, "Programmatic click") ||
                 eventIsInvalid(CREATE_FROM_PARCEL_METHODS, clazz, Parcelable.Creator.class, methodName, "Creating an event from a parcel") ||
                 eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Creating an event") ||
+                eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, DragEvent.class, methodName, "Creating a drag event") ||
                 eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Modifying an event") ||
+                eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, DragEvent.class, methodName, "Modifying a drag event") ||
                 eventIsInvalid(COPY_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Copying an event");
     }
 
