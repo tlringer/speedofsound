@@ -1,10 +1,7 @@
 import android.os.Parcelable;
-import android.view.InputEvent;
-import android.view.DragEvent;
-import android.view.View;
+import android.view.*;
 import soot.*;
-import soot.jimple.DefinitionStmt;
-import soot.jimple.InvokeStmt;
+import soot.jimple.*;
 import soot.options.Options;
 
 import java.util.Arrays;
@@ -78,15 +75,24 @@ public final class StaticEventValidator {
             @Override
             protected void internalTransform(Body b, String phaseName, Map<String, String> options) {
                 boolean hasErrors = false;
+                SootMethod bodyMethod = b.getMethod();
 
                 for(Unit u : b.getUnits()) {
                     if(u instanceof DefinitionStmt && ((DefinitionStmt) u).containsInvokeExpr()) {
                         SootMethod method = ((DefinitionStmt) u).getInvokeExpr().getMethod();
-                        hasErrors = hasErrors || eventIsInvalid(method);
+                        hasErrors = hasErrors || eventIsInvalid(method, bodyMethod);
                     }
                     else if (u instanceof InvokeStmt) {
                         SootMethod method = ((InvokeStmt) u).getInvokeExpr().getMethod();
-                        hasErrors = hasErrors || eventIsInvalid(method);
+                        hasErrors = hasErrors || eventIsInvalid(method, bodyMethod);
+                    } else if(u instanceof DefinitionStmt && ((DefinitionStmt)u).getRightOp() instanceof CastExpr) {
+                        final DefinitionStmt ds = (DefinitionStmt) u;
+                        final CastExpr ce = (CastExpr) ds.getRightOp();
+                        final Type t;
+                        if(ce.getCastType() instanceof RefType) {
+                            RefType rt = (RefType) ce.getCastType();
+                            hasErrors = hasErrors || downcastIsInvalid(rt, bodyMethod);
+                        }
                     }
                 }
 
@@ -102,34 +108,67 @@ public final class StaticEventValidator {
     /**
      * Check if an event is invalid
      */
-    private static boolean eventIsInvalid(SootMethod method) {
+    private static boolean eventIsInvalid(SootMethod method, SootMethod bodyMethod) {
         boolean isConstructor = method.isConstructor();
         String methodName = method.getName();
         SootClass clazz = method.getDeclaringClass();
+        String bodyMethodName = bodyMethod.getName();
+        SootClass bodyClazz = bodyMethod.getDeclaringClass();
 
         /**
          * Constructors for InputEvents also aren't allowed
          */
         if (isConstructor && isSubClass(clazz, InputEvent.class)) {
-            printError("Constructing an event", methodName, clazz);
+            printError("Constructing an event", bodyMethodName, bodyClazz, methodName, clazz);
             return true;
         }
 
-        return  eventIsInvalid(CLICK_METHODS, clazz, View.class, methodName, "Programmatic click") ||
-                eventIsInvalid(CREATE_FROM_PARCEL_METHODS, clazz, Parcelable.Creator.class, methodName, "Creating an event from a parcel") ||
-                eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Creating an event") ||
-                eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, DragEvent.class, methodName, "Creating a drag event") ||
-                eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Modifying an event") ||
-                eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, DragEvent.class, methodName, "Modifying a drag event") ||
-                eventIsInvalid(COPY_INPUT_EVENT_METHODS, clazz, InputEvent.class, methodName, "Copying an event");
+        // We let methods call superclass methods, otherwise
+        if (overrides(method, bodyMethod)) {
+            return false;
+        }
+
+        return  eventIsInvalid(CLICK_METHODS, clazz, bodyClazz, View.class, methodName, bodyMethodName, "Programmatic click") ||
+                //eventIsInvalid(CREATE_FROM_PARCEL_METHODS, clazz, bodyClazz, Parcelable.Creator.class, methodName, bodyMethodName, "Creating an event from a parcel") ||
+                eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, bodyClazz, InputEvent.class, methodName, bodyMethodName, "Creating an event") ||
+                eventIsInvalid(CREATE_INPUT_EVENT_METHODS, clazz, bodyClazz, DragEvent.class, methodName, bodyMethodName, "Creating a drag event") ||
+                eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, bodyClazz, InputEvent.class, methodName, bodyMethodName, "Modifying an event") ||
+                eventIsInvalid(MODIFY_INPUT_EVENT_METHODS, clazz, bodyClazz, DragEvent.class, methodName, bodyMethodName, "Modifying a drag event") ||
+                eventIsInvalid(COPY_INPUT_EVENT_METHODS, clazz, bodyClazz, InputEvent.class, methodName, bodyMethodName, "Copying an event");
+    }
+
+    private static boolean overrides(SootMethod method, SootMethod bodyMethod) {
+        return (method.getSubSignature().equals(bodyMethod.getSubSignature())) && (isSubClass(bodyMethod.getDeclaringClass(), method.getDeclaringClass()));
+    }
+
+    /**
+     * Checking for Parcelable.Creator<InputEvent> or <DragEvent> is impossible because of erasure.
+     * Checking for Parcelable.Creator<> catches too many good events.
+     * Instead we check for downcasts to some subclass of InputEvent or KeyEvent, which is how these manifest.
+     * This will also have false positives, but hopefully far fewer.
+     */
+    private static boolean downcastIsInvalid(RefType refType, SootMethod bodyMethod) {
+        SootClass clazz = refType.getSootClass();
+        String bodyMethodName = bodyMethod.getName();
+        SootClass bodyClazz = bodyMethod.getDeclaringClass();
+
+        if (isSubClass(clazz, InputEvent.class, MotionEvent.class.getName(), KeyEvent.class.getName())) {
+            printError("Downcasting to InputEvent (possible Parcelable.Creator<InputEvent>)", bodyMethodName, bodyClazz, "(cast)", clazz);
+            return true;
+        } else if (isSubClass(clazz, DragEvent.class)) {
+            printError("Downcasting to DragEvent (possible Parcelable.Creator<DragEvent>)", bodyMethodName, bodyClazz, "(cast)", clazz);
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * Check if an event is blacklisted and the class is a subclass of the superclass, and if so, print an error and return true
      */
-    private static boolean eventIsInvalid(Set<String> blacklist, SootClass clazz, Class superClazz, String methodName, String error) {
-        if (blacklist.contains(methodName) && isSubClass(clazz, superClazz)) {
-            printError(error, methodName, clazz);
+    private static boolean eventIsInvalid(Set<String> blacklist, SootClass clazz, SootClass bodyClazz, Class superClazz, String methodName, String bodyMethod, String error, String ... knownSubclasses) {
+        if (blacklist.contains(methodName) && isSubClass(clazz, superClazz, knownSubclasses)) {
+            printError(error, bodyMethod, bodyClazz, methodName, clazz);
             return true;
         }
 
@@ -138,9 +177,14 @@ public final class StaticEventValidator {
 
     /**
      * Check if a class is a subclass of the superclass
+     * We don't care about phantoms since we don't let apps override the superclass to begin with (constructors are banned)
      */
-    private static boolean isSubClass(SootClass clazz, Class superClazz) {
+    private static boolean isSubClass(SootClass clazz, SootClass superClazz, String ... knownSubclasses) {
         String superClassName = superClazz.getName();
+
+        if (clazz.isInterface()) {
+            return false;
+        }
 
         if (clazz.getName().equals(superClassName)) { // TODO refactor
             return true;
@@ -148,7 +192,7 @@ public final class StaticEventValidator {
 
         while (clazz.hasSuperclass()) {
             clazz = clazz.getSuperclass();
-            if (clazz.getName().equals(superClassName)) {
+            if (clazz.getName().equals(superClassName) || (knownSubclasses != null && Arrays.asList(knownSubclasses).contains(clazz.getName()))) {
                 return true;
             }
         }
@@ -157,10 +201,23 @@ public final class StaticEventValidator {
     }
 
     /**
+     * Check if a class is a subclass of the superclass
+     */
+    private static boolean isSubClass(SootClass clazz, Class superClazz, String ... knownSubClasses) {
+        if (clazz.isInterface()) {
+            return false;
+        }
+
+        SootClass sootClazz = Scene.v().getSootClass(superClazz.getName());
+        return isSubClass(clazz, sootClazz, knownSubClasses);
+    }
+
+    /**
      * Print an error
      */
-    private static void printError(String error, String methodName, SootClass clazz) {
+    private static void printError(String error, String methodName, SootClass clazz, String calledMethodName, SootClass calledClazz) {
         System.out.println("ERROR: " + error);
         System.out.println("In method: " + methodName + ", class: " + clazz.getName());
+        System.out.println("Called method: " + calledMethodName + ", class: " + calledClazz.getName());
     }
 }
